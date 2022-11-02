@@ -34,6 +34,8 @@ import numpy as np
 #import matplotlib.pyplot as plt
 from scipy import optimize
 
+norm=np.linalg.norm 
+
 pi = math.pi ; hbarc = 197.3269788; ln= np.log
 
 
@@ -48,7 +50,7 @@ m0=700.0 ;g1 = 7.829574386331634 ;g2 = 14.293782629281743;mbar2= 19.461938600144
 #m0=500;g1=9.02;g2=15.5;mbar2=22.9*fp**2; lam=42.3; lam6=16.9/fp**2; gw=11.3; gp=7.3
 
 #for convinience
-G=g1+g2;g=g1-g2;mub=0 #global
+G=g1+g2;g=g1-g2;
 #===============================================================================
 
 def m(s,sign):  #function to calculate in medium mass of nucleon, in: MeV out: MeV
@@ -63,11 +65,11 @@ def m(s,sign):  #function to calculate in medium mass of nucleon, in: MeV out: M
         ans= 0.5 * ((((G*s)**2)+4*m0**2)**0.5-g*s)
 
     if ans ==0:
-        return ans
+        return 0.0000001
     elif ans>0:
         return ans
     else:
-        return ans
+        return -ans
 #===============================================================================
 
 #===============================================================================
@@ -94,7 +96,7 @@ def Pfg(m,mu): #function to calculate pressure of fermi gas, in: MeV,MeV out: Me
 
     if k>0:
 
-        return (2/3 * k**3 * mu - m**2 * mu * k + m**4 *ln (abs((mu+k)/(((m+0.001)**2)**0.5))))/(8*pi**2)
+        return (2/3 * k**3 * mu - m**2 * mu * k + m**4 *ln (abs((mu+k)/m)))/(8*pi**2)
 
     else:
 
@@ -126,7 +128,7 @@ def dpdm(m,mu): #Function to calculate dp/dm, in: MeV,MeV out:
 
  if k>0:
 
-     return (-4*m*mu*k + 4 *m**3* ln(abs((k+mu)/(((m+0.001)**2)**0.5)))/(8*pi**2))
+     return (-4*m*mu*k + 4 *m**3* ln(abs((k+mu)/m))/(8*pi**2))
 
  else:
 
@@ -200,30 +202,39 @@ def getbden(mub,s,w,r,muq):
 #===============================================================================
 
 def myFunction (var):
-    f.write("fuck eslam")
-    s=var[0]
-    w=var[1]
-    p=var[2]
-    muq=var[3]
-    #in-medium Mass of positive and negative parity nucleons
-    mp = m(s,1)
-    mn = m(s,-1)
-    #Chemical potential for positive and negative parity nucleons
-    mup = (mub+ 0.5* muq - gw * w + 0.5 * (muq - gp*p))
-    mun = (mub+ 0.5* muq - gw * w - 0.5 * (muq - gp*p)) 
-    print(mub)
-    F= (0,0,0,0)
-    #self consistency for sigma
-    F[0]= mbar2*s-lam*s**3+lam6*s**5+mpi**2*fp+dpdm(mp,mup)*dmds(s,1)+dpdm(mp,mun)*dmds(s,1)+dpdm(mn,mup)*dmds(s,-1)+dpdm(mn,mun)*dmds(s,-1)
-    #self consistency for omega
-    F[1]= mw**2 * w - gw* (dpdmu(mp,mup)+dpdmu(mp,mun)+dpdmu(mn,mup)+dpdmu(mn,mun))
-    #self consistency for rho
-    F[2]= mr**2* p - 0.5* gp* (dpdmu(mp,mup)-dpdmu(mp,mun)+dpdmu(mn,mup)-dpdmu(mn,mun))
-    #charge neutrality + beta equilibrium
-    F[3]= -densityfg(muq,me)- densityfg(muq,mm) + dpdmu(mp,mup)+dpdmu(mn,mup)
-    return F
+
+ s=var[0]
+ w=var[1]
+ p=var[2]
+ muq=var[3]
+# in-medium Mass of positive and negative parity nucleons
+ mp = m(s,1)
+ mn = m(s,-1)
+
+ print(mub)###
+#Chemical potential for positive and negative parity nucleons
+ mup = (mub+ 0.5* muq - gw * w + 0.5 * (muq - gp*p))
+ mun = (mub+ 0.5* muq - gw * w - 0.5 * (muq - gp*p))
+
+ F= np.empty(4)
+#self consistency for sigma
+ F[0]= mbar2*s-lam*s**3+lam6*s**5+mpi**2*fp+dpdm(mp,mup)*dmds(s,1)+dpdm(mp,mun)*dmds(s,1)+dpdm(mn,mup)*dmds(s,-1)+dpdm(mn,mun)*dmds(s,-1)
+ #self consistency for omega
+ F[1]= mw**2 * w - gw* (dpdmu(mp,mup)+dpdmu(mp,mun)+dpdmu(mn,mup)+dpdmu(mn,mun))
+ #self consistency for rho
+ F[2]= mr**2* p - 0.5* gp* (dpdmu(mp,mup)-dpdmu(mp,mun)+dpdmu(mn,mup)-dpdmu(mn,mun))
+ #charge neutrality + beta equilibrium
+ F[3]= -densityfg(muq,me)- densityfg(muq,mm) + dpdmu(mp,mup)+dpdmu(mn,mup)
+ return F
 #===============================================================================
 
+#===============================================================================
+#defining norm of F
+def normF (var):
+    return norm(myFunction(var))
+#===============================================================================
+
+#===============================================================================
 def getrand ():
    R=np.empty(4)
    R[0]=random()*100
@@ -234,6 +245,16 @@ def getrand ():
    
 #===============================================================================
 
+#===============================================================================
+#defining constraints
+
+def sigmacond():
+  
+  return 
+
+cons = [{'type':'ineq', 'fun': sigmacond}]
+
+#===============================================================================
 
 #===============================================================================
 
@@ -254,7 +275,7 @@ var = np.array([0.0,0.0,0.0,0.0])
 #P=np.empty(0)
 #BDEN=np.empty(0)
 
-N=10 #N is the number of times random values are tried
+N=5 #N is the number of times random values are tried
 f = open(r"C:\Users\hken\Desktop\data\dat.txt", "a")
 f.write(f"running file: N={N}\n")
 for i in range (N): 
@@ -267,15 +288,13 @@ for i in range (N):
  RHO=np.empty(0)
  MUQ=np.empty(0)
  #Guess= np.array([30,8,-12,-5])
- for t in range (10): #find sigma(muB), omega(muB), rho(muB), Muq(muB) by solving F using Guess.
+ for t in range (100): #find sigma(muB), omega(muB), rho(muB), Muq(muB) by solving F using Guess.
   mub= mu_0 + 5 + t
-  print(myFunction(Guess))
-  print("abc")
   #sol = optimize.fsolve(myFunction,Guess) #solves system of equations using fsolve
   #f.write(f"guess:{Guess}")
-  sol = optimize.root(myFunction,Guess)#(.x) #solves system of equations using root
-  ##sol = optimize.minimize(myFunction,Guess) #solves system of equations using minimize     
-  d=np.linalg.norm(myFunction(sol.x)) # difference between sol and true solution
+  #sol = optimize.root(myFunction,Guess)#(.x) #solves system of equations using root
+  sol = optimize.minimize(normF,x0=Guess, method='COBYLA', constraints=(sigmacond) ) #solves system of equations using minimize     
+  d=norm(myFunction(sol.x)) # difference between sol and true solution
   if (d<error and sol.x[0]>0 and sol.x[1]>0 and sol.x[3]>-100): #only selects 'good' solutions
           MUB=np.append(MUB,mub)
           SIGMA=np.append(SIGMA,sol.x[0])
@@ -290,7 +309,7 @@ for i in range (N):
  if flag==1 or flag==0:
     f.write(f"flag:{flag}\n")
     f.write(f"{MUB} {SIGMA} {W} {RHO} {MUQ}")
-    f.write("\n") 
+    f.write("end.") 
  del MUB #delete array 
  del SIGMA
  del W
