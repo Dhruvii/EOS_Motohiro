@@ -49,39 +49,44 @@ m0=700.0 ;g1 = 7.829574386331634 ;g2 = 14.293782629281743;mbar2= 19.461938600144
 
 #for convinience
 G=g1+g2;g=g1-g2;mub=0 #global
+
 #===============================================================================
+#functions so m can be defined properly:
+
+def M(s):  #always positive
+    return np.sqrt((G*s)**2 + m0**2 )
 
 def m(s,sign):  #function to calculate in medium mass of nucleon, in: MeV out: MeV
-    
 
-    if sign==+1:
+    ans= 0.5*((M(s)+ sign*g*s))
 
-        ans = 0.5 * ((((G*s)**2)+4*m0**2)**0.5+g*s)
-
-    elif sign==-1:
-
-        ans= 0.5 * ((((G*s)**2)+4*m0**2)**0.5-g*s)
-
-    if ans ==0:
-        return ans
-    elif ans>0:
+    if ans>=0:
         return ans
     else:
-        return ans
+        print("m is negative, it might cause an error")
+        return 0
+
 #===============================================================================
+
+def pos( m,mu ):
+    k=kf(m,mu)
+    if m==0:
+        return 1 #since formulas are of the form m**n ln (pos) , when m = 0 the whole term is zero!
+
+    pos= (k+mu)/m
+    if pos>0:
+        return pos
+    else:
+        print ("negative value or zero in log, might cause error")
+        return 1
 
 #===============================================================================
 
 def kf(m,mu): #function to calculate fermi momentum, in: MeV,MeV out: MeV
 
     if (mu**2-m**2)>0:
-
-        k = (mu**2-m**2)**(0.5)
-
-        return k
-
+        return np.sqrt(mu**2-m**2) 
     else:
-
         return 0
 
 #===============================================================================
@@ -91,13 +96,9 @@ def kf(m,mu): #function to calculate fermi momentum, in: MeV,MeV out: MeV
 def Pfg(m,mu): #function to calculate pressure of fermi gas, in: MeV,MeV out: MeV
 
     k=kf(m,mu)
-
     if k>0:
-
-        return (2/3 * k**3 * mu - m**2 * mu * k + m**4 *ln (abs((mu+k)/(((m+0.001)**2)**0.5))))/(8*pi**2)
-
+        return (2/3 * k**3 * mu - m**2 * mu * k + m**4 *ln(pos(m,mu)) )/(8*pi**2)
     else:
-
         return 0
 
 #===============================================================================
@@ -106,30 +107,16 @@ def Pfg(m,mu): #function to calculate pressure of fermi gas, in: MeV,MeV out: Me
 
 def dmds(s,sign): #sign = 1,-1 # Function to calculate dm/ds, in: MeV/fm, out: MeV/fm
 
-    if sign==1:
-
-      return 0.5*(((G*s)**2 + 4*m0**2)**(-0.5) * G**2*s + g)
-
-    elif sign==-1:
-
-      return 0.5*(((G*s)**2 + 4*m0**2)**(-0.5) * G**2*s - g)
-
+      return 0.5*( G**2*s / M(s) + sign* g)
 #===============================================================================
-
-
 
 #===============================================================================
 
 def dpdm(m,mu): #Function to calculate dp/dm, in: MeV,MeV out:
-
  k=kf(m,mu)
-
  if k>0:
-
-     return (-4*m*mu*k + 4 *m**3* ln(abs((k+mu)/(((m+0.001)**2)**0.5)))/(8*pi**2))
-
+     return (-4*m*mu*k + 4 *m**3* ln(pos(m,mu))/(8*pi**2))
  else:
-
      return 0
 
 #===============================================================================
@@ -139,19 +126,13 @@ def dpdm(m,mu): #Function to calculate dp/dm, in: MeV,MeV out:
 #===============================================================================
 
 def dpdmu (m,mu):
-
     k=kf(m,mu)
-
     if k>0:
-
         return (kf(m,mu)**3)/(3*pi**2)
-
     else:
-
         return 0
     
 def densityfg(m,mu):
-
     return (dpdmu(m,mu))
 
 #===============================================================================
@@ -196,11 +177,16 @@ def getbden(mub,s,w,r,muq):
 
 
 
+def (
+
+
+    
+)
+
 
 #===============================================================================
 
 def myFunction (var):
-    f.write("fuck eslam")
     s=var[0]
     w=var[1]
     p=var[2]
